@@ -1,0 +1,24 @@
+useNewrelic: false
+useDefaultDbSecret: false
+
+extraSecrets:
+  - secretRef:
+      name: db-k8s-pg-tools
+  - secretRef:
+      name: db-panda-core
+  - secretRef:
+      name: db-read-panda-core
+  - secretRef:
+      name: db-read-slc-dispatcher
+
+
+readyPath: "/healthcheck"
+livePath: "/healthcheck"
+containerMetricPort: 3000
+
+# Environment specific configurations
+{{ toYaml .Environment.Values }}
+
+configMapEnvData:
+  APPLICATION_NAME: "dba-bot"
+  {{ toYaml .Environment.Values.configMapEnvData | nindent 2 }}

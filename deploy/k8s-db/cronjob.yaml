@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: restart-dba-bot-db
+  namespace: dba-bot
+spec:
+  concurrencyPolicy: Forbid
+  schedule: '57 23 * * *'
+  successfulJobsHistoryLimit: 0
+  failedJobsHistoryLimit: 0
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          serviceAccountName: restart-dba-bot-db
+          restartPolicy: Never
+          containers:
+            - name: restart-dba-bot-cron
+              image: raspbernetes/kubectl
+              command:
+                - 'kubectl'
+                - 'rollout'
+                - 'restart'
+                - 'deployment/dba-bot-db'

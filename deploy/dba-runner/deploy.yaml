@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dba-runner
+  namespace: dba-bot
+  labels:
+    app: dba-runner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dba-runner
+  template:
+    metadata:
+      labels:
+        app: dba-runner
+    spec:
+      containers:
+      - name: dba-bot
+        image: postgres:14.4
+        readinessProbe:
+          exec:
+            command: ["psql", "-w", "-U", "dba_pg_tools_username", "-d", "dba_pg_tools_database", "-c", "SELECT 1"]
+          initialDelaySeconds: 15
+          timeoutSeconds: 2
+        livenessProbe:
+          exec:
+            command: ["psql", "-w", "-U", "dba_pg_tools_username", "-d", "dba_pg_tools_database", "-c", "SELECT 1"]
+          initialDelaySeconds: 45
+          timeoutSeconds: 2
+        ports:
+        - containerPort: 5000
+        env:
+          - name: POSTGRES_DB
+            valueFrom:
+              secretKeyRef:
+                name: db-k8s-pg-tools
+                key: DATABASE_NAME
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: db-k8s-pg-tools
+                key: DATABASE_PASSWORD
+          - name: POSTGRES_USER
+            valueFrom:
+              secretKeyRef:
+                name: db-k8s-pg-tools
+                key: DATABASE_USERNAME
+          - name: DATABASE_HOST
+            valueFrom:
+              secretKeyRef:
+                name: db-k8s-pg-tools
+                key: DATABASE_HOST
+          - name: GITHUB_ACCESS_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: github-access-token-dba-runner
+                key: GITHUB_ACCESS_TOKEN

@@ -1,0 +1,41 @@
+---
+# consumersDisableHpa: true
+# consumersReplicas: 1
+
+# resources:
+#   requests:
+#     cpu: 100m
+#     memory: 128Mi
+#   limits:
+#     memory: 128Mi
+
+# configMapEnvData:
+#   NEW_RELIC_APP_NAME: "dba-bot-homolog"
+#   NEW_RELIC_CONSUMER_NAME: "dba-bot-homolog"
+
+# createLBApi: false
+# lbTypeApi: "internal"
+# lbCertApi: "arn:aws:acm:us-east-1:129817111992:certificate/6a60df06-adfe-4eb5-947c-1feab39b8e75"
+# internalHostnameApi: "dba-bot.homolog.stone.credit"
+
+# # Istio
+# lbType: "internal"
+# lbCert: "arn:aws:acm:us-east-1:129817111992:certificate/6a60df06-adfe-4eb5-947c-1feab39b8e75"
+# ingressHostname: "dba-bot.homolog.stone.credit"
+
+# ingressMinReplicas: 1
+# ingressMaxReplicas: 2
+# ingressTargetCPUUtilization: 80
+
+replicas: 1
+disableHpa: true
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    memory: 256Mi
+
+configMapEnvData:
+  NEW_RELIC_APP_NAME: "dba-bot"

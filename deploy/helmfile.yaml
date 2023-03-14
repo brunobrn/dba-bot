@@ -1,0 +1,42 @@
+repositories:
+  - name: stonks-app
+    url: git+ssh://git@github.com/dlpco/helm-chart-stonks-app@repo?ref=main&sparse=0
+
+helmDefaults:
+  # tillerless: true
+  wait: true
+  timeout: 300
+  atomic: true
+
+releases:
+  - name: dba-bot
+    namespace: dba-bot
+    chart: ./charts/stonks-app
+    values:
+      - values/base.yaml.gotmpl
+    hooks:
+      - events: ['prepare']
+        command: "rm"
+        args: ["-rf", "./charts/" ]
+      - events: ['prepare']
+        command: "helm"
+        args: ["fetch", "stonks-app/stonks-app", "--untar", "-d", "charts/"]
+      - events: ['prepare']
+        command: "sed"
+        args: ["-i", "-e", "$aappVersion: {{`{{ .Values.version }}`}}", "charts/stonks-app/Chart.yaml"]
+        # ATTENTION: '$aappVersion' IS NOT A TYPO. It's a sed command ("$a") followed by the string "appVersion"
+        # DO NOT CHANGE
+
+environments:
+  homolog:
+    values:
+      - values/HOMOLOG.yaml
+      - values/version.yaml
+  sandbox:
+    values:
+      - values/version.yaml
+      - values/SANDBOX.yaml
+  production:
+    values:
+      - values/version.yaml
+      - values/PRODUCTION.yaml

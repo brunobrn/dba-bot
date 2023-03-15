@@ -1,1 +1,1 @@
-create table if not exists a1(a int);
+create table if not exists a1(a int) ;

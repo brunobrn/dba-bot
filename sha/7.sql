@@ -1,1 +1,0 @@
-create table if not exists a4(a int);

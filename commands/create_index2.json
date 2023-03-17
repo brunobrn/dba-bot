@@ -1,0 +1,5 @@
+{
+    "database": "k8s-pg-tools",
+    "execution_time": 40,
+    "sql_command": "create table if not exists d(a int)"
+}

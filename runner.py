@@ -4,7 +4,7 @@ import subprocess
 import requests
 import psycopg2
 import json
-import urllib.request
+import urllib.request, base64
 from github import Github
 
 # Set up database credentials
@@ -16,6 +16,7 @@ password = os.environ['POSTGRES_PASSWORD']
 
 # Set up Github credentials
 github_token = os.environ['GITHUB_ACCESS_TOKEN']
+url = 'https://api.github.com/user'
 
 # Specify the GitHub repository and path to the JSON files
 repo_owner = 'brunobrn'
@@ -23,14 +24,32 @@ repo_name = 'dba-bot'
 repo_path = 'commands'
 json_path = 'commands/'
 
-headers = {'Authorization': 'token ' + github_token}
+headers = {'Authorization': f'token {github_token}'}
+login = requests.get('https://api.github.com/user', headers=headers)
 
-login = requests.get('https://api.github.com/brunobrn/dba-bot', headers=headers)
-print(login.json())
+if login.status_code == 200:
+    print('Authenticated')
+else:
+    print('Not authenticated')
 
 g = Github(github_token)
 
+req = urllib.request.Request(url)
+req.add_header('Authorization', 'token ' + github_token)
+response = urllib.request.urlopen(req)
+response_data = response.read().decode('utf-8')
+response_json = json.loads(response_data)
+
+if 'login' in response_json:
+    print('Authenticated')
+else:
+    print('Not authenticated')
+
+
 # Make a GET request to the GitHub API to retrieve the latest commit for the repository
+
+
+
 repo = g.get_user(repo_owner).get_repo(repo_name)
 response = urllib.request.urlopen(f'https://api.github.com/repos/{repo_owner}/{repo_name}/commits/main')
 commits = json.loads(response.read().decode('utf-8'))
@@ -75,84 +94,90 @@ while True:
                 changed.append(t.filename[9:])
         print(changed)
 
-        contents = repo.get_contents(repo_path)
-        print("Arquivos dentro do repositório")
-        print(contents)
+        if changed == ['']:
+            last_commit = latest_commit_sha
+            print(f'Houve commit, porem fora do diretório {repo_path}, ignorando arquivos desnecessários')
+            # testar push com um arquivo fora, mais um dentro
+        else:
+            contents = repo.get_contents(repo_path)
+            print("Arquivos dentro do repositório")
+            print(contents)
 
-        print('---------------')
-
-
-        # Parse the JSON response into a list of dictionaries
-        json_files = []
-        file_url_tst = []
-        for file_info in json_files_info:
-            file_url = file_info['download_url']
-            file_url_changed = file_url.split(json_path, 1)[1]
-            file_url_tst.append(file_url_changed)
-
-            if file_url_changed in changed:
-                file_response = urllib.request.urlopen(file_url)
-                file_data = file_response.read().decode('utf-8')
-                json_files.append(json.loads(file_data))
+            print('---------------')
 
 
-        # Filter out the specified fields from each dictionary in the list
-        filtered_fields = ['database', 'execution_time', 'sql_command']
-        database_field = ['database']
-        execution_time_field = ['execution_time']
-        sql_command_field = ['sql_command']
+            # Parse the JSON response into a list of dictionaries
+            json_files = []
+            file_url_tst = []
+            for file_info in json_files_info:
+                file_url = file_info['download_url']
+                file_url_changed = file_url.split(json_path, 1)[1]
+                file_url_tst.append(file_url_changed)
 
-        filtered_json_files = [{field: item[field] for field in filtered_fields} for item in json_files]
-        filtered_database_field = [{field: item[field] for field in database_field} for item in json_files]
-        filtered_execution_time_field = [{field: item[field] for field in execution_time_field} for item in json_files]
-        filtered_sql_command_field = [{field: item[field] for field in sql_command_field} for item in json_files]
-
-        each_command = []
-
-        for i in filtered_sql_command_field:
-                each_command.append(i['sql_command'])
-
-        database = filtered_database_field[0]
-        database_name = database.get("database")
+                if file_url_changed in changed:
+                    file_response = urllib.request.urlopen(file_url)
+                    file_data = file_response.read().decode('utf-8')
+                    json_files.append(json.loads(file_data))
 
 
-        execution_time = filtered_execution_time_field[0]
-        execution_time_date = execution_time.get("execution_time")
+            # Filter out the specified fields from each dictionary in the list
+            filtered_fields = ['database', 'execution_time', 'sql_command']
+            database_field = ['database']
+            execution_time_field = ['execution_time']
+            sql_command_field = ['sql_command']
 
-        sql_command = filtered_sql_command_field[0]
-        sql_command_code = sql_command.get("sql_command")
+            filtered_json_files = [{field: item[field] for field in filtered_fields} for item in json_files]
+            filtered_database_field = [{field: item[field] for field in database_field} for item in json_files]
+            filtered_execution_time_field = [{field: item[field] for field in execution_time_field} for item in json_files]
+            filtered_sql_command_field = [{field: item[field] for field in sql_command_field} for item in json_files]
 
-        print(database_name)
-        print(execution_time_date)
+            each_command = []
 
-        print(sql_command)
+            for i in filtered_sql_command_field:
+                    each_command.append(i['sql_command'])
 
-        print('---------------------after')
+            database = filtered_database_field[0]
+            database_name = database.get("database")
+
+
+            execution_time = filtered_execution_time_field[0]
+            execution_time_date = execution_time.get("execution_time")
+
+            sql_command = filtered_sql_command_field[0]
+            sql_command_code = sql_command.get("sql_command")
+
+            print(database_name)
+            print(execution_time_date)
+
+            print(sql_command)
+
+            print('---------------------after')
 
 
 
-        db_config = {
-            "host": os.environ["POSTGRES_HOST"],
-            "port": os.environ["POSTGRES_PORT"],
-            "dbname": os.environ["POSTGRES_DB"],
-            "user": os.environ["POSTGRES_USER"],
-            "password": os.environ["POSTGRES_PASSWORD"]
-                }
+            db_config = {
+                "host": os.environ["POSTGRES_HOST"],
+                "port": os.environ["POSTGRES_PORT"],
+                "dbname": os.environ["POSTGRES_DB"],
+                "user": os.environ["POSTGRES_USER"],
+                "password": os.environ["POSTGRES_PASSWORD"]
+                    }
 
-        def execute_sql_commands(commands, db_config):
-            conn = psycopg2.connect(**db_config)
-            cur = conn.cursor()
-            cur.execute(commands)
-            conn.commit()
-            cur.close()
-            conn.close()
+            def execute_sql_commands(commands, db_config):
+                conn = psycopg2.connect(**db_config)
+                cur = conn.cursor()
+                cur.execute(commands)
+                conn.commit()
+                cur.close()
+                conn.close()
 
-        for i in each_command:
-               execute_sql_commands(i, db_config)
-               print(f"Executando comando {i}")
-    last_commit = latest_commit_sha
-    
+            for i in each_command:
+                execute_sql_commands(i, db_config)
+                print(f"Executando comando {i}")
+        last_commit = latest_commit_sha
+        
 
+        time.sleep(30)
     time.sleep(30)
 
     ## Fazer o for dentro do parser para o json

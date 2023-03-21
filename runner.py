@@ -4,15 +4,17 @@ import subprocess
 import requests
 import psycopg2
 import json
-import urllib.request, base64
+import base64
+import urllib.request
+from kubernetes import client, config
 from github import Github
 
 # Set up database credentials
-host = os.environ['POSTGRES_HOST']
-port = os.environ['POSTGRES_PORT']
-name = os.environ['POSTGRES_DB']
-user = os.environ['POSTGRES_USER']
-password = os.environ['POSTGRES_PASSWORD']
+# host = os.environ['POSTGRES_HOST']
+# port = os.environ['POSTGRES_PORT']
+# name = os.environ['POSTGRES_DB']
+# user = os.environ['POSTGRES_USER']
+# password = os.environ['POSTGRES_PASSWORD']
 
 # Set up Github credentials
 github_token = os.environ['GITHUB_ACCESS_TOKEN']
@@ -24,8 +26,11 @@ repo_name = 'dba-bot'
 repo_path = 'commands'
 json_path = 'commands/'
 
+# Specify the k8s namespace
+namespace = 'dba-bot'
+
 headers = {'Authorization': f'token {github_token}'}
-login = requests.get('https://api.github.com/user', headers=headers)
+login = requests.get(url, headers=headers)
 
 if login.status_code == 200:
     print('Authenticated')
@@ -44,7 +49,6 @@ if 'login' in response_json:
     print('Authenticated')
 else:
     print('Not authenticated')
-
 
 # Make a GET request to the GitHub API to retrieve the latest commit for the repository
 
@@ -152,30 +156,141 @@ while True:
             print('---------------------after')
 
 
+            # Get secrets from k8s
+            def get_secret(namespace, name):
+                """
+                Get a Kubernetes Secret with the specified name in the specified namespace.
+
+                Args:
+                    namespace (str): The name of the Kubernetes namespace to retrieve the Secret from.
+                    name (str): The name of the Kubernetes Secret to retrieve.
+
+                Returns:
+                    A dictionary containing the data stored in the Secret.
+                """
+
+                # Load the Kubernetes configuration from the default location.
+                config.load_kube_config()
+
+                # Create a Kubernetes API client.
+                api_client = client.CoreV1Api()
+
+                # Get the Secret object from Kubernetes.
+                secret = api_client.read_namespaced_secret(name=name, namespace=namespace)
+                # print(secret)
+
+                # Extract the data from the Secret object.
+                data = secret.data
+
+                # Convert the data from bytes to strings.
+                for key, value in data.items():
+                    data[key] = value.encode('utf-8')
+
+                return data
+            secrets = get_secret(namespace=namespace, name=f'db-{database_name}')
+
+            host = base64.b64decode(secrets["DATABASE_HOST"]).decode('utf-8')
+            name = base64.b64decode(secrets["DATABASE_NAME"]).decode('utf-8')
+            password = base64.b64decode(secrets["DATABASE_PASSWORD"]).decode('utf-8')
+            port = base64.b64decode(secrets["DATABASE_PORT"]).decode('utf-8')
+            user = base64.b64decode(secrets["DATABASE_USERNAME"]).decode('utf-8')
+            print(host)
+            print(name)
+            print(password)
+            print(port)
+            print(user)
 
             db_config = {
-                "host": os.environ["POSTGRES_HOST"],
-                "port": os.environ["POSTGRES_PORT"],
-                "dbname": os.environ["POSTGRES_DB"],
-                "user": os.environ["POSTGRES_USER"],
-                "password": os.environ["POSTGRES_PASSWORD"]
+                "host": host,
+                "port": port,
+                "dbname": name,
+                "user": user,
+                "password": password
                     }
+            
+            def create_pod(sql_command, db_config):
+                config.load_kube_config()
+                api = client.BatchV1Api()
 
-            def execute_sql_commands(commands, db_config):
-                conn = psycopg2.connect(**db_config)
-                cur = conn.cursor()
-                cur.execute(commands)
-                conn.commit()
-                cur.close()
-                conn.close()
+                pod_manifest = {
+                    "apiVersion": "batch/v1",
+                    "kind": "CronJob",
+                    "metadata": {
+                        # "name": "a"
+                        "name": f"dba-runner-{database_name}"
+                        # "name": f"sql-runner-{db_config['database']}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                    },
+                    "spec": {
+                    "schedule": "* * * * *",
+                        "jobTemplate":
+                        { "spec" : { 
+                                "ttlSecondsAfterFinished": 600,
+                            "template": {
+                                "spec" : {
+                        "restartPolicy": "Never",
+                        "containers": [
+                            {
+                                "name": "sql-runner",
+                                "image": "postgres:14.4",
+                                "env": [
+                                    {
+                                        "name": "POSTGRES_HOST",
+                                        "value": host
+                                    },
+                                    {
+                                        "name": "POSTGRES_PORT",
+                                        "value": port
+                                    },                        
+                                    {
+                                        "name": "POSTGRES_USER",
+                                        "value": user
+                                    },
+                                    {
+                                        "name": "POSTGRES_PASSWORD",
+                                        "value": password
+                                    },
+                                    {
+                                        "name": "POSTGRES_DB",
+                                        "value": name
+                                    },
+                                    {
+                                        "name": "SQL_COMMAND",
+                                        "value": sql_command
+                                    }
+                                ],
+                                "command": ["sleep"],
+                                "args": ["55"]
+                            }
+                        ]
+                    }
+                        }
+                
+                }}}}
+
+                api.create_namespaced_cron_job(body=pod_manifest, namespace="dba-bot")
+                print("chegou aqui")
 
             for i in each_command:
-                execute_sql_commands(i, db_config)
-                print(f"Executando comando {i}")
+                create_pod(i, db_config)
+                print(f"Comando agendado no k8s cronjob com o comando: {i}")
+            # create_pod(sql_commands, db_config)
+
+            # def execute_sql_commands(commands, db_config):
+            #     conn = psycopg2.connect(**db_config)
+            #     cur = conn.cursor()
+            #     cur.execute(commands)
+            #     conn.commit()
+            #     cur.close()
+            #     conn.close()
+
+            # for i in each_command:
+            #     execute_sql_commands(i, db_config)
+            #     print(f"Executando comando: {i}")
+
         last_commit = latest_commit_sha
         
 
         time.sleep(30)
     time.sleep(30)
 
-    ## ok
+    ## montar uma docker image com as libs py e pg com os arquivos runner e runner_exc para subir na cron.

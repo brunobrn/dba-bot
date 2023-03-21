@@ -1,0 +1,5 @@
+{
+    "database": "slc-dispatcher",
+    "execution_time": "00 10 * * *",
+    "sql_command": "create table if not exists d(a int)"
+}

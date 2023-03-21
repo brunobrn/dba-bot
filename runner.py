@@ -48,8 +48,6 @@ else:
 
 # Make a GET request to the GitHub API to retrieve the latest commit for the repository
 
-
-
 repo = g.get_user(repo_owner).get_repo(repo_name)
 response = urllib.request.urlopen(f'https://api.github.com/repos/{repo_owner}/{repo_name}/commits/main')
 commits = json.loads(response.read().decode('utf-8'))
@@ -180,4 +178,4 @@ while True:
         time.sleep(30)
     time.sleep(30)
 
-    ## Fazer o for dentro do parser para o json
+    ## ok

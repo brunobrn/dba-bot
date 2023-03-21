@@ -1,5 +1,5 @@
 {
     "database": "k8s-pg-tools",
-    "execution_time": 70,
-    "sql_command": "create table if not exists b1(a int)"
+    "execution_time": "00 10 * * *",
+    "sql_command": "create table if not exists repack.b1(a int)"
 }

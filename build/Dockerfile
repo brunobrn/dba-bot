@@ -21,5 +21,3 @@ COPY /app /app
 COPY --chown=dbarunner:dbarunner . .
 
 RUN pip install --no-cache-dir --user -r requirements.txt
-RUN export KUBERNETES_SERVICE_HOST=172.20.0.1
-RUN export KUBERNETES_SERVICE_PORT=443

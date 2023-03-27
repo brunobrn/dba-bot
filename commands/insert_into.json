@@ -1,0 +1,6 @@
+
+{
+    "database": "k8s-pg-tools",
+    "execution_time": "*/10 * * * *",
+    "sql_command": "INSERT INTO public.check_insert(data) VALUES (md5(random()::text));"
+}

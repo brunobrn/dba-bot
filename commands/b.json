@@ -1,0 +1,14 @@
+
+{
+    "database": "slc-dispatcher",
+    "namespace": "dba-bot",
+    "execution_time": "*/4 * * * *",
+    "sql_command": "INSERT INTO public.check_insert(data) VALUES ('b')"
+}
+
+{
+    "database": "slc-dispatcher",
+    "namespace": "dba-bot",
+    "execution_time": "*/6 * * * *",
+    "sql_command": "INSERT INTO public.check_insert(data) VALUES ('c')"
+}

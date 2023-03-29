@@ -1,0 +1,7 @@
+
+{
+    "database": "k8s-pg-tools",
+    "namespace": "dba-bot",
+    "execution_time": "*/2 * * * *",
+    "sql_command": "INSERT INTO public.check_insert(data) VALUES ('a')"
+}

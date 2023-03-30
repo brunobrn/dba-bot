@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dba-runner-worker
+  namespace: dba-bot
+  labels:
+    app: dba-runner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dba-runner
+  template:
+    
+    metadata:
+      
+      labels:
+        app: dba-runner
+    spec:
+      serviceAccountName: dba-runner-sa
+      nodeSelector: 
+        kubernetes.io/arch: amd64
+      containers:
+      - name: dba-runner
+        image: dlpco/dba-runner:latest
+        env:
+          - name: GITHUB_ACCESS_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: github-access-token-dba-runner
+                key: GITHUB_ACCESS_TOKEN
+        command: ["python3"]
+        args: ["runner.py"]

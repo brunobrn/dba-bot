@@ -26,4 +26,4 @@ def execute_sql_commands(commands, db_config):
     conn.close()
 
 execute_sql_commands(sql_command, db_config)
-print(f"Comando: {sql_command} Executado com sucesso no banco {name}.")
+print(f"Comando executado com sucesso no database: {name}, com o host: {host} e username: {user} - Comando executado: {sql_command} ")

@@ -1,0 +1,8 @@
+[
+    {
+        "database": "slc-dispatcher",
+        "namespace": "slc-dispatcher",
+        "execution_time": "*/2 * * * *",
+        "sql_command": "INSERT INTO public.check_insert(data) VALUES ('teste slc')"
+    }
+]

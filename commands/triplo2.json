@@ -1,0 +1,22 @@
+[
+    {
+        "database": "slc-dispatcher",
+        "namespace": "dba-bot",
+        "execution_time": "*/4 * * * *",
+        "sql_command": "INSERT INTO public.check_insert(data) VALUES ('comando 3 no slc - teste triplo2 + 2 simples')"
+    },
+
+    {
+        "database": "slc-dispatcher",
+        "namespace": "dba-bot",
+        "execution_time": "*/6 * * * *",
+        "sql_command": "INSERT INTO public.check_insert(data) VALUES ('comando 4 no slc - teste triplo2 + 2 simples')"
+    },
+
+    {
+        "database": "k8s-pg-tools",
+        "namespace": "dba-bot",
+        "execution_time": "*/6 * * * *",
+        "sql_command": "INSERT INTO public.check_insert(data) VALUES ('comando 2 - mas insert 1 no k8s - teste triplo2 + 2 simples')"
+    }
+]
